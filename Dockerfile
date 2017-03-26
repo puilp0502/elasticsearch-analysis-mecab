@@ -89,4 +89,5 @@ ENV LD_LIBRARY_PATH=/usr/local/lib
 
 EXPOSE 9200 9300
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["elasticsearch"]
+# https://groups.google.com/forum/?hl=ko#!topic/eunjeon/i9vqL3Uw77s
+CMD ["elasticsearch", "-Des.security.manager.enabled=false"]
