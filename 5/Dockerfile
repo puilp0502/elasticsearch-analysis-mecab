@@ -27,8 +27,8 @@ RUN set -x \
 	&& apt-get update && apt-get install -y --no-install-recommends apt-transport-https && rm -rf /var/lib/apt/lists/* \
 	&& echo 'deb https://artifacts.elastic.co/packages/5.x/apt stable main' > /etc/apt/sources.list.d/elasticsearch.list
 
-ENV ELASTICSEARCH_VERSION 5.2.2
-ENV ELASTICSEARCH_DEB_VERSION 5.2.2
+ENV ELASTICSEARCH_VERSION 5.1.1
+ENV ELASTICSEARCH_DEB_VERSION 5.1.1
 
 RUN set -x \
 	\
@@ -61,6 +61,30 @@ VOLUME /usr/share/elasticsearch/data
 
 COPY docker-entrypoint.sh /
 
+ADD mecab-java-0.996 /tmp/libmecab
+
+# Install mecab-ko, mecab-ko-dic, libMeCab.so
+ENV MECAB_VER mecab-0.996-ko-0.9.2
+ENV MECAB_DIC_VER mecab-ko-dic-2.0.1-20150920
+RUN set -x \
+	&& apt-get update && apt-get install -y --no-install-recommends build-essential autotools-dev automake ; \
+	wget -O /tmp/mecab-ko.tar.gz https://bitbucket.org/eunjeon/mecab-ko/downloads/$MECAB_VER.tar.gz \
+	&& mkdir /tmp/mecab-ko && tar -xzf /tmp/mecab-ko.tar.gz -C /tmp/mecab-ko && cd /tmp/mecab-ko/$MECAB_VER \
+	&& ./configure && make && make check && make install \
+	&& ldconfig; \
+	wget -O /tmp/mecab-ko-dic.tar.gz https://bitbucket.org/eunjeon/mecab-ko-dic/downloads/$MECAB_DIC_VER.tar.gz \
+	&& mkdir /tmp/mecab-ko-dic && tar -xzf /tmp/mecab-ko-dic.tar.gz -C /tmp/mecab-ko-dic && cd /tmp/mecab-ko-dic/$MECAB_DIC_VER \
+	&& ./autogen.sh && ./configure && make && make install; \
+	cd /tmp/libmecab && ls -al && make && cp libMeCab.so /usr/local/lib; \
+	apt-get remove -y build-essential autotools-dev automake \
+	&& rm -rf /var/lib/apt/lists/* ;\
+	rm -rf /tmp/mecab-ko.tar.gz /tmp/mecab-ko /tmp/mecab-ko-dic.tar.gz /tmp/mecab-ko-dic /tmp/libmecab
+
+# Install elasticsearch plugin
+WORKDIR /usr/share/elasticsearch 
+RUN ./bin/elasticsearch-plugin install https://bitbucket.org/eunjeon/mecab-ko-lucene-analyzer/downloads/elasticsearch-analysis-mecab-ko-5.1.1.0.zip
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
 
 EXPOSE 9200 9300
 ENTRYPOINT ["/docker-entrypoint.sh"]

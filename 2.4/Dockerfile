@@ -62,6 +62,7 @@ COPY config ./config
 VOLUME /usr/share/elasticsearch/data
 
 COPY docker-entrypoint.sh /
+
 ADD mecab-java-0.996 /tmp/libmecab
 
 # Install mecab-ko, mecab-ko-dic, libMeCab.so
